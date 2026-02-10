@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MyPartFolioAPI.Context;
 using MyPartFolioAPI.Modules.LoginUser.Models;
 
-namespace MyPartFolioAPI.Modules.LoginUser.Query;
+namespace MyPartFolioAPI.Modules.Users.Models.Request;
 public class CheckSecurityUser
 {
     public class CheckSecurityUserQuery : IRequest<(LoginUsers, string)>

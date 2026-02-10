@@ -39,15 +39,30 @@ builder.Services.AddDbContext<DBContext>(options =>
 //});
 builder.Services.AddSingleton<IDataProtectionService, DataProtectionService>();
 builder.Services.AddMediatR(Assembly.GetExecutingAssembly());
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll", policy =>
+//    {
+//        policy.AllowAnyOrigin()
+//              .AllowAnyHeader()
+//              .AllowAnyMethod();
+//    });
+//});
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowReact",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
 });
+
+//var app = builder.Build();
+
+//app.UseCors("AllowReact");
+
 
 // ---------------- BUILD ----------------
 var app = builder.Build();

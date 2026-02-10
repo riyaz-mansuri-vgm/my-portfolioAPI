@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using MyPartFolioAPI.Context;
+using MyPartFolioAPI.Modules.DataProtection.Services;
 using MyPartFolioAPI.Modules.Users.Models.Response;
 
 namespace MyPartFolioAPI.Modules.Users.Query;
@@ -12,9 +13,13 @@ public class GetUserList
     public class GetUserListQueryHandler : IRequestHandler<GetUserListQuery, (List<GetUserListResponseModel>, string, int)>
     {
         private readonly DBContext DBContext;
-        public GetUserListQueryHandler(DBContext dbContext, IConfiguration configuration)
+        private IDataProtectionService DataProtectionService { get; }
+        public IConfiguration Configuration;
+        public GetUserListQueryHandler(DBContext dbContext, IDataProtectionService dataProtectionService, IConfiguration configuration)
         {
             DBContext = dbContext;
+            DataProtectionService = dataProtectionService;
+            Configuration = configuration;
         }
         public async Task<(List<GetUserListResponseModel>, string, int)> Handle(GetUserListQuery query, CancellationToken cancellationToken)
         {
@@ -28,6 +33,7 @@ public class GetUserList
             {
                 result.Item1 = userList.Select(x => new GetUserListResponseModel()
                 {
+                    EmcyptedUserId = DataProtectionService.GetProtectedValue(x.UserId.ToString()),
                     UserId = x.UserId,
                     UserName = x.UserName,
                     UserEmail = x.Email,

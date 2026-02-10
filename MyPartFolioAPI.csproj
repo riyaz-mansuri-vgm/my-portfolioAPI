@@ -24,6 +24,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Swashbukle.AspNetCore" Version="2.0.0" />
+    <PackageReference Include="System.Security.Permissions" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>

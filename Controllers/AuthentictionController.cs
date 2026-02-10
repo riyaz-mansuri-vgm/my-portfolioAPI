@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using static MyPartFolioAPI.Modules.LoginUser.Query.CheckSecurityUser;
+using static MyPartFolioAPI.Modules.Users.Models.Request.CheckSecurityUser;
 
 namespace MyPartFolioAPI.Controllers;
 [Route("api")]

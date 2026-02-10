@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MyPartFolioAPI.Models;
+using MyPartFolioAPI.Modules.DataProtection.Services;
 using MyPartFolioAPI.Modules.Users.Models.Request;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using static MyPartFolioAPI.Modules.Users.Command.AddUser;
 using static MyPartFolioAPI.Modules.Users.Command.UpdateUser;
+using static MyPartFolioAPI.Modules.Users.Query.GetUserDetails;
 using static MyPartFolioAPI.Modules.Users.Query.GetUserList;
 using static MyPartFolioAPI.Modules.Users.Query.UserDetailExist;
 
@@ -21,11 +23,11 @@ public class UsersController : ControllerBase
 {
     private IMediator Mediator { get; set; }
     private IWebHostEnvironment WebHostEnvironment { get; }
-    //private IDataProtectionService DataProtectionService { get; }
-    public UsersController(IMediator mediator, IWebHostEnvironment webHostEnvironment)
+    private IDataProtectionService DataProtectionService { get; }
+    public UsersController(IMediator mediator,IDataProtectionService dataProtectionService ,IWebHostEnvironment webHostEnvironment)
     {
         Mediator = mediator;
-        //DataProtectionService = dataProtectionService;
+        DataProtectionService = dataProtectionService;
         WebHostEnvironment = webHostEnvironment;
 
     }
@@ -88,7 +90,7 @@ public class UsersController : ControllerBase
         ResponseModel response = new ResponseModel();
         try
         {
-            if (request.UserId == null)
+            if (request.EncryptedUserId == null || string.IsNullOrWhiteSpace(request.EncryptedUserId))
             {
                 response.Message = "Invalid request.";
             }
@@ -113,8 +115,9 @@ public class UsersController : ControllerBase
                 return Ok(response);
             }
 
-            var userExist = await Mediator.Send(new UserDetailExistQuery { 
-            UserId = request.UserId
+            var userExist = await Mediator.Send(new UserDetailExistQuery
+            {
+                UserId = DataProtectionService.GetPlainValue<int>(request.EncryptedUserId)
             });
 
             if (!string.IsNullOrWhiteSpace(userExist.Item2))
@@ -173,6 +176,44 @@ public class UsersController : ControllerBase
             response.Message = "Something went wrong, please contact Administrator.";
         }
 
+        return Ok(response);
+    }
+
+    [HttpPost]
+    //[Authorize(Roles = "ADMIN")]
+    [Route("view-user-detail")]
+    public async Task<IActionResult> GetUserDetails([FromBody] GetUserDetailRequestModel request)
+    {
+        ResponseModel response = new ResponseModel();
+        try
+        {
+            if (string.IsNullOrEmpty(request.EncryptedUserId))
+            {
+                response.Message = "Invalid request.";
+                return Ok(response);
+            }
+            var userId = DataProtectionService.GetPlainValue<int>(request.EncryptedUserId);
+
+            var userDetails = await Mediator.Send(new GetUserDetailsQuery
+            {
+                UserId = userId,
+            });
+
+            if (userDetails.Item1 != null)
+            {
+                response.Status = (int)ResponseCode.Success;
+                response.Data = userDetails.Item1;
+            }
+            else
+            {
+                response.Message = userDetails.Item2;
+            }
+        }
+        catch
+        {
+            response.Status = (int)ResponseCode.Failure;
+            response.Message = "Something went wrong, please contact Administrator.";
+        }
         return Ok(response);
     }
 }
