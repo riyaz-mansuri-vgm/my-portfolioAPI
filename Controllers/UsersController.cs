@@ -1,0 +1,178 @@
+﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using MyPartFolioAPI.Models;
+using MyPartFolioAPI.Modules.Users.Models.Request;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using static MyPartFolioAPI.Modules.Users.Command.AddUser;
+using static MyPartFolioAPI.Modules.Users.Command.UpdateUser;
+using static MyPartFolioAPI.Modules.Users.Query.GetUserList;
+using static MyPartFolioAPI.Modules.Users.Query.UserDetailExist;
+
+namespace MyPartFolioAPI.Controllers;
+
+[Route("api")]
+[EnableCors("AllowReact")]
+//[Authorize(Roles = "Client")]
+public class UsersController : ControllerBase
+{
+    private IMediator Mediator { get; set; }
+    private IWebHostEnvironment WebHostEnvironment { get; }
+    //private IDataProtectionService DataProtectionService { get; }
+    public UsersController(IMediator mediator, IWebHostEnvironment webHostEnvironment)
+    {
+        Mediator = mediator;
+        //DataProtectionService = dataProtectionService;
+        WebHostEnvironment = webHostEnvironment;
+
+    }
+
+    [HttpPost]
+    [Route("add-user-details")]
+    public async Task<IActionResult> AddUserDetails([FromBody] AddUserCommand command)
+    {
+        ResponseModel response = new ResponseModel();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(command.UserName))
+            {
+                response.Message = "UserName is required.";
+            }
+            else if (string.IsNullOrWhiteSpace(command.Email))
+            {
+                response.Message = "Email is required.";
+            }
+            else if (string.IsNullOrWhiteSpace(command.MobileNumber))
+            {
+                response.Message = "Mobile number is requeired.";
+            }
+            else if (!string.IsNullOrWhiteSpace(command.MobileNumber) && command.MobileNumber.Length != 10)
+            {
+                response.Message = "Mobile number field should be 10 digit";
+            }
+            if (!string.IsNullOrWhiteSpace(response.Message))
+            {
+                return Ok(response);
+            }
+            var addDetail = await Mediator.Send(command);
+            if (addDetail != null)
+            {
+                response.Status = (int)ResponseCode.Success;
+                response.Data = new { };
+                response.Message = "User detail added successfully!";
+            }
+            else
+            {
+                response.Message = "Something went wrong while adding user details, please contact Administrator.";
+                response.Status = (int)ResponseCode.Failure;
+                return Ok(response);
+            }
+
+        }
+        catch
+        {
+            response.Status = (int)ResponseCode.Failure;
+            response.Message = "Something went wrong, please contact Administrator.";
+        }
+
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("update-user-detail")]
+    public async Task<IActionResult> UpdateUserDetail([FromBody] UpdateUseDetailRequestModel request)
+    {
+        ResponseModel response = new ResponseModel();
+        try
+        {
+            if (request.UserId == null)
+            {
+                response.Message = "Invalid request.";
+            }
+            else if (string.IsNullOrWhiteSpace(request.UserName))
+            {
+                response.Message = "UserName is required.";
+            }
+            else if (string.IsNullOrWhiteSpace(request.Email))
+            {
+                response.Message = "Email is required.";
+            }
+            else if (string.IsNullOrWhiteSpace(request.MobileNumber))
+            {
+                response.Message = "Mobile number is requeired.";
+            }
+            else if (!string.IsNullOrWhiteSpace(request.MobileNumber) && request.MobileNumber.Length != 10)
+            {
+                response.Message = "Mobile number field should be 10 digit";
+            }
+            if (!string.IsNullOrWhiteSpace(response.Message))
+            {
+                return Ok(response);
+            }
+
+            var userExist = await Mediator.Send(new UserDetailExistQuery { 
+            UserId = request.UserId
+            });
+
+            if (!string.IsNullOrWhiteSpace(userExist.Item2))
+            {
+                response.Message = userExist.Item2;
+                return Ok(response);
+            }
+            userExist.Item1.UserName = request.UserName;
+            userExist.Item1.MobileNumber = request.MobileNumber;
+            userExist.Item1.Email = request.Email;
+            userExist.Item1.Address = request.Address;
+
+            var updateDetails = await Mediator.Send(new UpdateUserCommand { users = userExist.Item1 });
+            if (updateDetails)
+            {
+                response.Message = "Update user details successfully!";
+                response.Status = (int)ResponseCode.Success;
+            }
+            else
+            {
+                response.Message = "Something went wrong while update user details!";
+                response.Status = (int)ResponseCode.Failure;
+            }
+        }
+        catch
+        {
+            response.Status = (int)ResponseCode.Failure;
+            response.Message = "Something went wrong, please contact Administrator.";
+        }
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("get-users-list")]
+    public async Task<IActionResult> GetUserList()
+    {
+        ResponseModel response = new ResponseModel();
+        try
+        {
+
+            var userList = await Mediator.Send(new GetUserListQuery { });
+            if (userList.Item1.Count > 0)
+            {
+                response.Status = (int)ResponseCode.Success;
+                response.Data = new { UserList = userList.Item1 };
+                response.Message = "User list fetch succesfully!.";
+            }
+            else
+            {
+                response.Message = "No user list found!.";
+            }
+        }
+        catch
+        {
+            response.Status = (int)ResponseCode.Failure;
+            response.Message = "Something went wrong, please contact Administrator.";
+        }
+
+        return Ok(response);
+    }
+}

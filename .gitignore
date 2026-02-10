@@ -1,0 +1,35 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+
+# NuGet
+packages/
+*.nupkg
+
+# Environment / secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+.env
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Publish
+publish/
+
+# Frontend
+node_modules/
+npm-debug.log
+yarn-error.log
