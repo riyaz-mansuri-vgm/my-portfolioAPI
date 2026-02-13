@@ -9,6 +9,7 @@ using MyPartFolioAPI.Modules.DataProtection.Services;
 using MyPartFolioAPI.Modules.Users.Models.Request;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using static MyPartFolioAPI.Modules.Users.Command.AddUser;
+using static MyPartFolioAPI.Modules.Users.Command.DeleteUserDetail;
 using static MyPartFolioAPI.Modules.Users.Command.UpdateUser;
 using static MyPartFolioAPI.Modules.Users.Query.GetUserDetails;
 using static MyPartFolioAPI.Modules.Users.Query.GetUserList;
@@ -24,7 +25,7 @@ public class UsersController : ControllerBase
     private IMediator Mediator { get; set; }
     private IWebHostEnvironment WebHostEnvironment { get; }
     private IDataProtectionService DataProtectionService { get; }
-    public UsersController(IMediator mediator,IDataProtectionService dataProtectionService ,IWebHostEnvironment webHostEnvironment)
+    public UsersController(IMediator mediator, IDataProtectionService dataProtectionService, IWebHostEnvironment webHostEnvironment)
     {
         Mediator = mediator;
         DataProtectionService = dataProtectionService;
@@ -59,11 +60,11 @@ public class UsersController : ControllerBase
             {
                 return Ok(response);
             }
-            var addDetail = await Mediator.Send(command);
-            if (addDetail != null)
+            var userId = await Mediator.Send(command);
+            if (userId != null)
             {
                 response.Status = (int)ResponseCode.Success;
-                response.Data = new { };
+                response.Data = new { userId = userId, encryptedUserId = DataProtectionService.GetProtectedValue(userId.ToString()) };
                 response.Message = "User detail added successfully!";
             }
             else
@@ -206,8 +207,56 @@ public class UsersController : ControllerBase
             }
             else
             {
+                response.Status = (int)ResponseCode.NoContent;
                 response.Message = userDetails.Item2;
+                return Ok(response);
             }
+        }
+        catch
+        {
+            response.Status = (int)ResponseCode.Failure;
+            response.Message = "Something went wrong, please contact Administrator.";
+        }
+        return Ok(response);
+    }
+
+    [HttpDelete]
+    [Route("delete-user-detail")]
+    public async Task<IActionResult> DeleteUserDetail([FromBody] DeleteUserRequestModel request)
+    {
+        ResponseModel response = new ResponseModel();
+        try
+        {
+            if (string.IsNullOrEmpty(request.EncryptedUserId))
+            {
+                response.Message = "Invalid request.";
+                return Ok(response);
+            }
+            var userId = DataProtectionService.GetPlainValue<int>(request.EncryptedUserId);
+
+            var userDetails = await Mediator.Send(new GetUserDetailsQuery
+            {
+                UserId = userId,
+            });
+
+            if (userDetails.Item1 == null)
+            {
+                response.Status = (int)ResponseCode.NoContent;
+                response.Data = userDetails.Item1;
+                return Ok(response);
+            }
+            var isDeleted = await Mediator.Send(new DeleteUserDetailCommand
+            {
+                UserId = userId,
+            });
+            if (!isDeleted)
+            {
+                response.Status = (int)ResponseCode.Failure;
+                response.Message = "Something went wrong while deleting user details, please contact Administrator.";
+                return Ok(response);
+            }
+            response.Status = (int)ResponseCode.Success;
+            response.Message = "User details deleted successfully!";
         }
         catch
         {

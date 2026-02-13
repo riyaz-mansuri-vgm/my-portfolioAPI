@@ -18,7 +18,9 @@ public class UpdateUser
         }
         public async Task<bool> Handle(UpdateUserCommand command, CancellationToken cancellationToken)
         {
-            command.users.Update_Date = DateTime.UtcNow;
+            command.users.Created_At = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+            command.users.Update_Date = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
+
 
             DBContext.users.Update(command.users);
             await DBContext.SaveChangesAsync(cancellationToken);
